@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bookshelf</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 0 60px;
+    }
+
+    .section {
+      width: 100%;
+      max-width: 1320px;
+      padding: 0 60px;
+    }
+
+    .header {
+      margin-bottom: 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a18;
+    }
+
+    .bookshelf { position: relative; }
+
+    .fan { position: relative; }
+
+    .book {
+      position: absolute;
+      cursor: pointer;
+      border-radius: 0;
+      overflow: hidden;
+      will-change: transform, left;
+      transition:
+        left      0.55s cubic-bezier(0.25, 1.0, 0.4, 1),
+        transform 0.4s  cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+
+    .book::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, rgba(0,0,0,0.1) 0%, transparent 9%);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.12);
+      pointer-events: none;
+    }
+
+    .book img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+      -webkit-user-drag: none;
+      user-select: none;
+    }
+
+    .book-label {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      transition:
+        left    0.55s cubic-bezier(0.25, 1.0, 0.4, 1),
+        opacity 0.18s ease;
+    }
+
+    .book-label-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #1a1a18;
+      line-height: 1.3;
+      margin-bottom: 2px;
+    }
+
+    .book-label-author {
+      font-size: 12px;
+      font-weight: 300;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <section class="section">
+    <div class="header">Favorite Books Lately</div>
+    <div class="bookshelf" id="bookshelf">
+      <div class="fan" id="fan"></div>
+    </div>
+  </section>
+
+  <script>
+  // ═══════════════════════════════════════════════════════════════
+  // BOOKS — add, remove, or reorder entries here.
+  //
+  // Each book needs:
+  //   img    → path to the cover image (put images in "Bookshelf Images/")
+  //   title  → book title
+  //   author → author name
+  //
+  // The layout adjusts automatically for any number of books.
+  // ═══════════════════════════════════════════════════════════════
+
+  const BOOKS = [
+    {
+      img:    'Bookshelf Images/basic economics.jpg',
+      title:  'Basic Economics',
+      author: 'Thomas Sowell',
+    },
+    {
+      img:    'Bookshelf Images/days at the morasaki bookshop.jpg',
+      title:  'Days at the Morisaki Bookshop',
+      author: 'Satoshi Yagisawa',
+    },
+    {
+      img:    'Bookshelf Images/small-things-like-this.jpg',
+      title:  'Small Things Like These',
+      author: 'Claire Keegan',
+    },
+    {
+      img:    'Bookshelf Images/Writing to learn.jpg',
+      title:  'Writing to Learn',
+      author: 'William Zinsser',
+    },
+    {
+      img:    'Bookshelf Images/Courage to be disliked.jpeg',
+      title:  'The Courage to Be Disliked',
+      author: 'Ichiro Kishimi & Fumitake Koga',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9780345538987-L.jpg',
+      title:  'Jurassic Park',
+      author: 'Michael Crichton',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9780766165786-L.jpg',
+      title:  'Men and Rubber: The Story of Business',
+      author: 'Harvey S. Firestone',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9780802165176-L.jpg',
+      title:  'Heart the Lover',
+      author: 'Lily King',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9780679744399-L.jpg',
+      title:  'All the Pretty Horses',
+      author: 'Cormac McCarthy',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9780679745587-L.jpg',
+      title:  'In Cold Blood',
+      author: 'Truman Capote',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9780375726262-L.jpg',
+      title:  'American Prometheus',
+      author: 'Kai Bird & Martin J. Sherwin',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9781481424363-L.jpg',
+      title:  'The Paper Menagerie and Other Stories',
+      author: 'Ken Liu',
+    },
+    {
+      img:    'https://covers.openlibrary.org/b/isbn/9780060936228-L.jpg',
+      title:  'Just Kids',
+      author: 'Patti Smith',
+    },
+  ];
+
+  // ═══════════════════════════════════════════════════════════════
+  // No need to edit below this line.
+  // ═══════════════════════════════════════════════════════════════
+
+  const BOOK_W         = 90;    // book width in px
+  const BOOK_H         = 136;   // book height in px
+  const V_STEP         = 14;    // px each book rises above the previous
+  const COLLAPSE_RATIO = 0.32;  // collapsed stack is this fraction of expanded width
+  const LABEL_OFFSET   = 12;    // px below book bottom edge to start label
+
+  const bookshelf = document.getElementById('bookshelf');
+  const fan       = document.getElementById('fan');
+
+  const N     = BOOKS.length;
+  const FAN_H = BOOK_H + (N - 1) * V_STEP + 40;
+
+  fan.style.height              = FAN_H + 'px';
+  bookshelf.style.paddingBottom = (50 + LABEL_OFFSET) + 'px';
+
+  let isExpanded   = false;
+  let activeIdx    = null;
+  let currentHStep = 0;
+  const bookEls    = [];
+  const labelEls   = [];
+
+  function fanWidth() {
+    return fan.offsetWidth || fan.getBoundingClientRect().width || 1200;
+  }
+
+  function calcExpandedStep() {
+    return (fanWidth() - BOOK_W) / (N - 1);
+  }
+
+  function calcCollapsedStep() {
+    return calcExpandedStep() * COLLAPSE_RATIO;
+  }
+
+  function applyPositions(hStep) {
+    currentHStep = hStep;
+    const start  = 0;
+    bookEls.forEach((el, i) => {
+      el.style.left   = (start + i * hStep) + 'px';
+      el.style.bottom = (i * V_STEP) + 'px';
+    });
+    const labelTop = FAN_H + LABEL_OFFSET; // same baseline for all labels (book 0's position)
+    labelEls.forEach((el, i) => {
+      el.style.left = (start + i * hStep) + 'px';
+      el.style.top  = labelTop + 'px';
+    });
+  }
+
+  function layout() {
+    applyPositions(isExpanded ? calcExpandedStep() : calcCollapsedStep());
+  }
+
+  /* Build book + label elements */
+  BOOKS.forEach((book, i) => {
+    // Book cover
+    const el = document.createElement('div');
+    el.className   = 'book';
+    el.style.width  = BOOK_W + 'px';
+    el.style.height = BOOK_H + 'px';
+    el.style.zIndex = N - i;
+
+    const img = document.createElement('img');
+    img.src = book.img;
+    img.alt = book.title;
+    el.appendChild(img);
+
+    el.addEventListener('mouseenter', () => {
+      if (activeIdx !== i) {
+        el.style.transform = 'translateY(-12px) scale(1.02)';
+        el.style.zIndex    = 50;
+      }
+    });
+
+    el.addEventListener('mouseleave', () => {
+      if (activeIdx !== i) {
+        el.style.transform = '';
+        el.style.zIndex    = N - i;
+      }
+    });
+
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+
+      if (activeIdx === i) {
+        // Deselect
+        el.style.transform      = '';
+        el.style.zIndex         = N - i;
+        labelEls[i].style.opacity = '0';
+        activeIdx = null;
+        return;
+      }
+
+      // Reset previous
+      if (activeIdx !== null) {
+        bookEls[activeIdx].style.transform      = '';
+        bookEls[activeIdx].style.zIndex         = N - activeIdx;
+        labelEls[activeIdx].style.opacity       = '0';
+      }
+
+      activeIdx = i;
+      el.style.transform      = 'translateY(-28px) scale(1.04)';
+      el.style.zIndex         = 100;
+      labelEls[i].style.opacity = '1';
+    });
+
+    bookEls.push(el);
+    fan.appendChild(el);
+
+    // Label (hidden until clicked)
+    const label = document.createElement('div');
+    label.className   = 'book-label';
+    label.style.width = '200px';
+    label.innerHTML   = `
+      <div class="book-label-title">${book.title}</div>
+      <div class="book-label-author">By ${book.author}</div>
+    `;
+    labelEls.push(label);
+    fan.appendChild(label);
+  });
+
+  /* Container hover: expand / collapse */
+  bookshelf.addEventListener('mouseenter', () => {
+    if (!isExpanded) {
+      isExpanded = true;
+      applyPositions(calcExpandedStep());
+    }
+  });
+
+  bookshelf.addEventListener('mouseleave', () => {
+    if (activeIdx === null) {
+      isExpanded = false;
+      applyPositions(calcCollapsedStep());
+    }
+  });
+
+  /* Click outside: deselect and collapse */
+  document.addEventListener('click', () => {
+    if (activeIdx === null) return;
+    bookEls[activeIdx].style.transform = '';
+    bookEls[activeIdx].style.zIndex    = N - activeIdx;
+    labelEls[activeIdx].style.opacity  = '0';
+    activeIdx  = null;
+    isExpanded = false;
+    applyPositions(calcCollapsedStep());
+  });
+
+  /* Defer first render until browser has finished layout */
+  requestAnimationFrame(layout);
+  window.addEventListener('resize', layout);
+  </script>
+</body>
+</html>
